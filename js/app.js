@@ -1,6 +1,8 @@
 let currentDC = '猫小胖';
 let currentWorld = '';
 let searchCache = {};
+const HISTORY_KEY = 'universalis_search_history';
+const MAX_HISTORY = 10;
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -19,7 +21,7 @@ function navigateTo(page) {
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   const navLink = document.querySelector(`.nav-link[data-page="${page}"]`);
   if (navLink) navLink.classList.add('active');
-  if (page === 'search') document.getElementById('searchInput')?.focus();
+  if (page === 'search') { document.getElementById('searchInput')?.focus(); renderSearchHistory(); }
   window.scrollTo({ top: 0 });
 }
 
@@ -30,6 +32,42 @@ function setupNavHighlight() {
       this.classList.add('active');
     });
   });
+}
+
+function getSearchHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+}
+
+function saveSearchHistory(query) {
+  const h = getSearchHistory().filter(s => s !== query);
+  h.unshift(query);
+  if (h.length > MAX_HISTORY) h.length = MAX_HISTORY;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
+
+function renderSearchHistory() {
+  const el = document.getElementById('searchHistory');
+  const h = getSearchHistory();
+  if (!h.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="history-header"><span>搜索历史</span><button class="history-clear" onclick="clearSearchHistory()">清空</button></div>`
+    + h.map(s => `<span class="history-tag" onclick="doSearch('${s.replace(/'/g, "\\'")}')">${escapeHtml(s)}<span class="remove" onclick="event.stopPropagation();removeSearchHistory('${s.replace(/'/g, "\\'")}')">×</span></span>`).join('');
+}
+
+function clearSearchHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderSearchHistory();
+}
+
+function removeSearchHistory(query) {
+  const h = getSearchHistory().filter(s => s !== query);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+  renderSearchHistory();
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 function showToast(msg, duration = 3000) {
@@ -142,6 +180,7 @@ async function doSearch(query) {
   query = query.trim();
   if (!query) return;
   navigateTo('search');
+  saveSearchHistory(query);
   const resultsDiv = document.getElementById('searchResults');
   resultsDiv.innerHTML = '<div class="loading">搜索中...</div>';
   try {
