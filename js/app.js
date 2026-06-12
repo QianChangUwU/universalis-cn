@@ -324,6 +324,7 @@ async function showItemDetail(itemId, itemName) {
   lastView.itemId = itemId;
   lastView.itemName = itemName;
   currentFilter = 'all';
+  listingsLimit = 10;
   navigateTo('item');
   const container = document.getElementById('itemDetail');
   container.innerHTML = '<div class="loading">加载市场数据...</div>';
@@ -353,7 +354,6 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   const hasHQ = allListings.some(l => l.hq) || allHistory.some(h => h.hq);
   const hasNQ = allListings.some(l => !l.hq) || allHistory.some(h => !h.hq);
   const showFilter = hasHQ && hasNQ;
-  listingsLimit = 10;
 
   function filterData(list) {
     if (currentFilter === 'all') return list;
