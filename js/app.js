@@ -134,8 +134,8 @@ async function loadFavPrice(itemId) {
   const el = document.getElementById(`favPrice${itemId}`);
   if (!el) return;
   try {
-    const dc = currentDC || '猫小胖';
-    const data = await getMarketData(dc, itemId);
+    const target = currentWorld || currentDC || '猫小胖';
+    const data = await getMarketData(target, itemId);
     const min = data.minPriceNQ ?? data.minPrice ?? 0;
     el.textContent = min ? `${min.toLocaleString('zh-CN')} G` : '-';
     el.style.color = 'var(--accent-green)';
@@ -361,10 +361,10 @@ async function showItemDetail(itemId, itemName) {
   const container = document.getElementById('itemDetail');
   container.innerHTML = '<div class="loading">加载市场数据...</div>';
   try {
-    const targetDC = currentDC || '猫小胖';
+    const target = currentWorld || currentDC || '猫小胖';
     const [itemInfo, marketData] = await Promise.all([
       getItemInfo(itemId),
-      getMarketData(targetDC, itemId),
+      getMarketData(target, itemId),
     ]);
     renderItemDetail(container, itemId, itemName, itemInfo, marketData);
   } catch (e) {
@@ -375,7 +375,7 @@ async function showItemDetail(itemId, itemName) {
 function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   const iconUrl = itemInfo?.Icon ? iconPathToUrl(itemInfo.Icon) : '';
   const catName = itemInfo?.ItemSearchCategory?.Name || '未分类';
-  const dcName = marketData?.dcName || currentDC;
+  const targetLabel = currentWorld || currentDC || '猫小胖';
 
   const listings = marketData?.listings || [];
   const history = marketData?.recentHistory || [];
@@ -391,7 +391,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
       <img class="item-header-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
       <div class="item-header-info">
         <div class="item-header-name">${itemName}</div>
-        <div class="item-header-category">${catName} · ${dcName} · ID: ${itemId}</div>
+        <div class="item-header-category">${catName} · ${targetLabel} · ID: ${itemId}</div>
         <button id="favBtn" class="fav-btn" onclick="toggleFavorite(${itemId},'${itemName.replace(/'/g, "\\'")}');renderFavButton(${itemId})">☆ 收藏</button>
       </div>
     </div>
