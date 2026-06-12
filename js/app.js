@@ -10,10 +10,18 @@ const MAX_FAV = 100;
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  await loadDCSelector();
-  await loadCnDCCards();
-  await loadStats();
-  await loadAboutPage();
+  try {
+    await loadDCSelector();
+    await loadCnDCCards();
+    await loadStats();
+    await loadAboutPage();
+  } catch (e) {
+    document.querySelector('.hero h2').textContent = '加载失败';
+    document.querySelector('.hero p').textContent = `无法连接服务器: ${e.message}。请检查网络，或刷新重试。`;
+    document.querySelector('.hero p').style.color = 'var(--accent-red)';
+    document.getElementById('dcSelect').innerHTML = '<option value="">加载失败</option>';
+    return;
+  }
   setupNavHighlight();
 }
 

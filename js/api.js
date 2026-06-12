@@ -8,10 +8,16 @@ const CN_DC_NAMES = ['陆行鸟', '莫古力', '猫小胖', '豆豆柴'];
 let cachedDataCenters = null;
 let cachedWorlds = null;
 
-async function apiFetch(url) {
-  const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
+async function apiFetch(url, timeoutMs = 10000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { signal: ctrl.signal, headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function getDataCenters() {
