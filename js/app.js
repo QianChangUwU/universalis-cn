@@ -372,85 +372,115 @@ async function showItemDetail(itemId, itemName) {
   }
 }
 
+let currentFilter = 'all';
+let cachedItemDetail = null;
+
 function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
+  cachedItemDetail = { container, itemId, itemName, itemInfo, marketData };
   const iconUrl = itemInfo?.Icon ? iconPathToUrl(itemInfo.Icon) : '';
   const catName = itemInfo?.ItemSearchCategory?.Name || '未分类';
   const targetLabel = currentWorld || currentDC || '猫小胖';
+  const allListings = marketData?.listings || [];
+  const allHistory = marketData?.recentHistory || [];
+  currentFilter = 'all';
 
-  const listings = marketData?.listings || [];
-  const history = marketData?.recentHistory || [];
-  const minPrice = marketData?.minPriceNQ ?? marketData?.minPrice ?? 0;
-  const avgPrice = marketData?.currentAveragePriceNQ ?? marketData?.currentAveragePrice ?? 0;
-  const maxPrice = marketData?.maxPriceNQ ?? marketData?.maxPrice ?? 0;
-  const saleVel = marketData?.nqSaleVelocity ?? marketData?.regularSaleVelocity ?? 0;
-  const unitsForSale = marketData?.unitsForSale ?? 0;
-  const unitsSold = marketData?.unitsSold ?? 0;
+  const hasHQ = allListings.some(l => l.hq) || allHistory.some(h => h.hq);
+  const hasNQ = allListings.some(l => !l.hq) || allHistory.some(h => !h.hq);
+  const showFilter = hasHQ && hasNQ;
 
-  container.innerHTML = `
-    <div class="item-header">
-      <img class="item-header-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
-      <div class="item-header-info">
-        <div class="item-header-name">${itemName}</div>
-        <div class="item-header-category">${catName} · ${targetLabel} · ID: ${itemId}</div>
-        <button id="favBtn" class="fav-btn" onclick="toggleFavorite(${itemId},'${itemName.replace(/'/g, "\\'")}');renderFavButton(${itemId})">☆ 收藏</button>
+  function filterData(list) {
+    if (currentFilter === 'all') return list;
+    return list.filter(x => currentFilter === 'hq' ? x.hq : !x.hq);
+  }
+
+  function render() {
+    const listings = filterData(allListings);
+    const history = filterData(allHistory);
+    const minPrice = Math.min(...listings.map(l => l.pricePerUnit), 0);
+    const avgPrice = listings.length ? listings.reduce((s, l) => s + l.pricePerUnit, 0) / listings.length : 0;
+    const maxPrice = Math.max(...listings.map(l => l.pricePerUnit), 0);
+    const sumQty = listings.reduce((s, l) => s + l.quantity, 0);
+    const hqCount = listings.filter(l => l.hq).length;
+
+    container.innerHTML = `
+      <div class="item-header">
+        <img class="item-header-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
+        <div class="item-header-info">
+          <div class="item-header-name">${itemName}</div>
+          <div class="item-header-category">${catName} · ${targetLabel} · ID: ${itemId}</div>
+          <button id="favBtn" class="fav-btn" onclick="toggleFavorite(${itemId},'${itemName.replace(/'/g, "\\'")}');renderFavButton(${itemId})">☆ 收藏</button>
+        </div>
       </div>
-    </div>
 
-    <div class="price-summary">
-      <div class="price-box"><div class="label">最低价</div><div class="value green">${formatGil(minPrice)}</div></div>
-      <div class="price-box"><div class="label">平均价</div><div class="value">${formatGil(Math.round(avgPrice))}</div></div>
-      <div class="price-box"><div class="label">最高价</div><div class="value red">${formatGil(maxPrice)}</div></div>
-      <div class="price-box"><div class="label">日销量</div><div class="value gold">${saleVel.toFixed(1)}</div></div>
-      <div class="price-box"><div class="label">在售</div><div class="value">${unitsForSale}</div></div>
-      <div class="price-box"><div class="label">已售</div><div class="value">${unitsSold}</div></div>
-    </div>
+      <div class="price-summary">
+        <div class="price-box"><div class="label">最低价</div><div class="value green">${formatGil(minPrice)}</div></div>
+        <div class="price-box"><div class="label">平均价</div><div class="value">${formatGil(Math.round(avgPrice))}</div></div>
+        <div class="price-box"><div class="label">最高价</div><div class="value red">${formatGil(maxPrice)}</div></div>
+        <div class="price-box"><div class="label">在售数量</div><div class="value">${sumQty}</div></div>
+        <div class="price-box"><div class="label">在售件数</div><div class="value">${listings.length}</div></div>
+        <div class="price-box"><div class="label">HQ占比</div><div class="value gold">${listings.length ? Math.round(hqCount / listings.length * 100) + '%' : '-'}</div></div>
+      </div>
+      ${showFilter ? `
+      <div class="filter-bar">
+        <span class="filter-btn${currentFilter === 'all' ? ' active' : ''}" onclick="setFilter('all')">全部</span>
+        <span class="filter-btn${currentFilter === 'nq' ? ' active' : ''}" onclick="setFilter('nq')">NQ</span>
+        <span class="filter-btn${currentFilter === 'hq' ? ' active' : ''}" onclick="setFilter('hq')">HQ</span>
+      </div>` : ''}
 
-    <div class="data-section-title">在售列表 <span class="count-badge">${listings.length} 条</span></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>价格</th><th>数量</th><th>品质</th><th>服务器</th><th>雇员</th>
-        </tr></thead>
-        <tbody>
-          ${listings.length ? listings.map(l => `
-            <tr>
-              <td>${formatGil(l.pricePerUnit)}</td>
-              <td>${l.quantity}</td>
-              <td>${l.hq ? '<span class="hq-badge">HQ</span>' : 'NQ'}</td>
-              <td>${l.worldName || '-'}</td>
-              <td>${l.retainerName || '-'}</td>
-            </tr>
-          `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">暂无在售信息</td></tr>'}
-        </tbody>
-      </table>
-    </div>
+      <div class="data-section-title">在售列表 <span class="count-badge">${listings.length} 条</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>价格</th><th>数量</th><th>品质</th><th>服务器</th><th>雇员</th>
+          </tr></thead>
+          <tbody>
+            ${listings.length ? listings.map(l => `
+              <tr>
+                <td>${formatGil(l.pricePerUnit)}</td>
+                <td>${l.quantity}</td>
+                <td>${l.hq ? '<span class="hq-badge">HQ</span>' : 'NQ'}</td>
+                <td>${l.worldName || '-'}</td>
+                <td>${l.retainerName || '-'}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">暂无在售信息</td></tr>'}
+          </tbody>
+        </table>
+      </div>
 
-    <div class="data-section-title">成交记录 <span class="count-badge">${history.length} 条</span></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>价格</th><th>数量</th><th>品质</th><th>服务器</th><th>买家</th><th>时间</th>
-        </tr></thead>
-        <tbody>
-          ${history.length ? history.map(h => `
-            <tr>
-              <td>${formatGil(h.pricePerUnit)}</td>
-              <td>${h.quantity}</td>
-              <td>${h.hq ? '<span class="hq-badge">HQ</span>' : 'NQ'}</td>
-              <td>${h.worldName || '-'}</td>
-              <td>${h.buyerName || '-'}</td>
-              <td>${formatTime(h.timestamp)}</td>
-            </tr>
-          `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">暂无成交记录</td></tr>'}
-        </tbody>
-      </table>
-    </div>
-  `;
+      <div class="data-section-title">成交记录 <span class="count-badge">${history.length} 条</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>价格</th><th>数量</th><th>品质</th><th>服务器</th><th>买家</th><th>时间</th>
+          </tr></thead>
+          <tbody>
+            ${history.length ? history.map(h => `
+              <tr>
+                <td>${formatGil(h.pricePerUnit)}</td>
+                <td>${h.quantity}</td>
+                <td>${h.hq ? '<span class="hq-badge">HQ</span>' : 'NQ'}</td>
+                <td>${h.worldName || '-'}</td>
+                <td>${h.buyerName || '-'}</td>
+                <td>${formatTime(h.timestamp)}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">暂无成交记录</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
 
-  renderFavButton(itemId);
+    renderFavButton(itemId);
+    if (history.length >= 2) renderPriceChart(container, history);
+  }
 
-  if (history.length >= 2) {
-    renderPriceChart(container, history);
+  render();
+}
+
+function setFilter(val) {
+  currentFilter = val;
+  if (cachedItemDetail && document.getElementById('page-item').classList.contains('active')) {
+    const { container, itemId, itemName, itemInfo, marketData } = cachedItemDetail;
+    renderItemDetail(container, itemId, itemName, itemInfo, marketData);
   }
 }
 
