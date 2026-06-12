@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universalis 国服市场公告板 - FFXIV 物价查询</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div class="logo" onclick="navigateTo('home')">
+        <h1>🌐 Universalis <span class="cn-badge">国服镜像</span></h1>
+      </div>
+      <div class="header-controls">
+        <div class="dc-selector">
+          <label>服务器/大区</label>
+          <div class="select-group">
+            <select id="dcSelect" onchange="changeDC(this.value)">
+              <option value="">加载中...</option>
+            </select>
+            <select id="worldSelect" onchange="changeWorld(this.value)">
+              <option value="">全大区</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <a href="#" onclick="navigateTo('home')" class="nav-link active" data-page="home">首页</a>
+      <a href="#" onclick="navigateTo('search')" class="nav-link" data-page="search">物品搜索</a>
+      <a href="#" onclick="navigateTo('categories')" class="nav-link" data-page="categories">物品分类</a>
+      <a href="#" onclick="navigateTo('about')" class="nav-link" data-page="about">关于</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Home Page -->
+    <section id="page-home" class="page active">
+      <div class="hero">
+        <h2>FFXIV 国服市场公告板</h2>
+        <p>查询《最终幻想14》国服各服务器市场价格，数据由玩家社区贡献</p>
+        <div class="search-box">
+          <input type="text" id="homeSearch" placeholder="搜索物品名称（如：高压纤维板、巨匠药水...）" onkeyup="if(event.key==='Enter')doSearch(this.value)">
+          <button onclick="doSearch(document.getElementById('homeSearch').value)">搜索</button>
+        </div>
+      </div>
+
+      <div class="quick-stats">
+        <div class="stat-card" id="statDataCenters">
+          <div class="stat-number">-</div>
+          <div class="stat-label">国服大区</div>
+        </div>
+        <div class="stat-card" id="statWorlds">
+          <div class="stat-number">-</div>
+          <div class="stat-label">国服服务器</div>
+        </div>
+        <div class="stat-card" id="statItems">
+          <div class="stat-number">-</div>
+          <div class="stat-label">可查询物品</div>
+        </div>
+        <div class="stat-card" id="statSource">
+          <div class="stat-number">API</div>
+          <div class="stat-label">数据来源 Universalis</div>
+        </div>
+      </div>
+
+      <div class="section-title">快速分类浏览</div>
+      <div class="category-grid" id="categoryGrid">
+        <div class="category-card" data-category="武器" onclick="browseCategory(2)">
+          <div class="category-icon">⚔️</div>
+          <div class="category-name">武器</div>
+        </div>
+        <div class="category-card" data-category="防具" onclick="browseCategory(3)">
+          <div class="category-icon">🛡️</div>
+          <div class="category-name">防具</div>
+        </div>
+        <div class="category-card" data-category="首饰" onclick="browseCategory(4)">
+          <div class="category-icon">💍</div>
+          <div class="category-name">首饰</div>
+        </div>
+        <div class="category-card" data-category="消耗品" onclick="browseCategory(5)">
+          <div class="category-icon">🧪</div>
+          <div class="category-name">消耗品</div>
+        </div>
+        <div class="category-card" data-category="材料" onclick="browseCategory(6)">
+          <div class="category-icon">🧱</div>
+          <div class="category-name">材料</div>
+        </div>
+        <div class="category-card" data-category="家具" onclick="browseCategory(7)">
+          <div class="category-icon">🏠</div>
+          <div class="category-name">家具</div>
+        </div>
+        <div class="category-card" data-category="魔晶石" onclick="browseCategory(8)">
+          <div class="category-icon">💎</div>
+          <div class="category-name">魔晶石</div>
+        </div>
+        <div class="category-card" data-category="杂货" onclick="browseCategory(9)">
+          <div class="category-icon">📦</div>
+          <div class="category-name">杂货</div>
+        </div>
+      </div>
+
+      <div class="section-title">国服数据大区</div>
+      <div class="dc-cards" id="dcCards"></div>
+    </section>
+
+    <!-- Search Page -->
+    <section id="page-search" class="page">
+      <h2>物品搜索</h2>
+      <div class="search-box search-page-box">
+        <input type="text" id="searchInput" placeholder="输入物品名称（支持中文）..." onkeyup="if(event.key==='Enter')doSearch(this.value)">
+        <button onclick="doSearch(document.getElementById('searchInput').value)">搜索</button>
+      </div>
+      <div id="searchResults" class="search-results"></div>
+    </section>
+
+    <!-- Categories Page -->
+    <section id="page-categories" class="page">
+      <h2>物品分类浏览</h2>
+      <div class="subcategory-list" id="subcategoryList"></div>
+      <div class="category-items" id="categoryItems"></div>
+    </section>
+
+    <!-- About Page -->
+    <section id="page-about" class="page">
+      <h2>关于本站</h2>
+      <div class="about-content">
+        <p>本站是 <a href="https://universalis.app" target="_blank">Universalis.app</a> 的中文镜像站，专注于《最终幻想14》国服市场数据查询。</p>
+        <p>数据来源：<a href="https://universalis.app" target="_blank">Universalis</a> 公共 API</p>
+        <p>物品中文数据：<a href="https://xivapi.com" target="_blank">XIVAPI</a> / <a href="https://cafemaker.wakingsands.com" target="_blank">CafeMaker</a></p>
+        <p>Universalis 是一个由玩家社区驱动的市场公告板数据聚合平台，数据由 ACT 插件用户上传共享。</p>
+        <h3>国服支持的大区</h3>
+        <ul id="aboutDcList"></ul>
+        <p class="footer-note">FINAL FANTASY XIV © SQUARE ENIX CO., LTD. All Rights Reserved.</p>
+      </div>
+    </section>
+
+    <!-- Item Detail Page -->
+    <section id="page-item" class="page">
+      <button class="back-btn" onclick="navigateTo('home')">← 返回首页</button>
+      <div id="itemDetail" class="item-detail">
+        <div class="loading">加载中...</div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
