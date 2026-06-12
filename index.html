@@ -34,7 +34,7 @@
     <div class="nav-inner">
       <a href="#" onclick="navigateTo('home')" class="nav-link active" data-page="home">首页</a>
       <a href="#" onclick="navigateTo('search')" class="nav-link" data-page="search">物品搜索</a>
-      <a href="#" onclick="navigateTo('categories')" class="nav-link" data-page="categories">物品分类</a>
+
       <a href="#" onclick="navigateTo('about')" class="nav-link" data-page="about">关于</a>
       <a href="#" onclick="navigateTo('favorites')" class="nav-link" data-page="favorites">收藏</a>
     </div>
@@ -71,41 +71,6 @@
         </div>
       </div>
 
-      <div class="section-title">快速分类浏览</div>
-      <div class="category-grid" id="categoryGrid">
-        <div class="category-card" data-category="武器" onclick="browseCategory(2)">
-          <div class="category-icon">⚔️</div>
-          <div class="category-name">武器</div>
-        </div>
-        <div class="category-card" data-category="防具" onclick="browseCategory(3)">
-          <div class="category-icon">🛡️</div>
-          <div class="category-name">防具</div>
-        </div>
-        <div class="category-card" data-category="首饰" onclick="browseCategory(4)">
-          <div class="category-icon">💍</div>
-          <div class="category-name">首饰</div>
-        </div>
-        <div class="category-card" data-category="消耗品" onclick="browseCategory(5)">
-          <div class="category-icon">🧪</div>
-          <div class="category-name">消耗品</div>
-        </div>
-        <div class="category-card" data-category="材料" onclick="browseCategory(6)">
-          <div class="category-icon">🧱</div>
-          <div class="category-name">材料</div>
-        </div>
-        <div class="category-card" data-category="家具" onclick="browseCategory(7)">
-          <div class="category-icon">🏠</div>
-          <div class="category-name">家具</div>
-        </div>
-        <div class="category-card" data-category="魔晶石" onclick="browseCategory(8)">
-          <div class="category-icon">💎</div>
-          <div class="category-name">魔晶石</div>
-        </div>
-        <div class="category-card" data-category="杂货" onclick="browseCategory(9)">
-          <div class="category-icon">📦</div>
-          <div class="category-name">杂货</div>
-        </div>
-      </div>
 
       <div class="section-title">国服数据大区</div>
       <div class="dc-cards" id="dcCards"></div>
@@ -120,13 +85,6 @@
       </div>
       <div id="searchHistory" class="search-history"></div>
       <div id="searchResults" class="search-results"></div>
-    </section>
-
-    <!-- Categories Page -->
-    <section id="page-categories" class="page">
-      <h2>物品分类浏览</h2>
-      <div class="subcategory-list" id="subcategoryList"></div>
-      <div class="category-items" id="categoryItems"></div>
     </section>
 
     <!-- Favorites Page -->

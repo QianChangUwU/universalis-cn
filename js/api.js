@@ -128,30 +128,4 @@ async function getItemInfo(itemId) {
   }
 }
 
-const CATEGORY_QUERIES = {
-  2: 'ItemSearchCategory.Category=1',
-  3: 'ItemSearchCategory=31 ItemSearchCategory=33 ItemSearchCategory=35 ItemSearchCategory=36 ItemSearchCategory=37 ItemSearchCategory=38',
-  4: 'ItemSearchCategory=39 ItemSearchCategory=40 ItemSearchCategory=41 ItemSearchCategory=42',
-  5: 'ItemSearchCategory=43 ItemSearchCategory=44 ItemSearchCategory=45 ItemSearchCategory=46',
-  6: 'ItemSearchCategory=47 ItemSearchCategory=48 ItemSearchCategory=49 ItemSearchCategory=50 ItemSearchCategory=51 ItemSearchCategory=52 ItemSearchCategory=53 ItemSearchCategory=54 ItemSearchCategory=55 ItemSearchCategory=58 ItemSearchCategory=59',
-  7: 'ItemSearchCategory.Category=4',
-  8: 'ItemSearchCategory=57',
-  9: 'ItemSearchCategory=60 ItemSearchCategory=64 ItemSearchCategory=74 ItemSearchCategory=75 ItemSearchCategory=79 ItemSearchCategory=80 ItemSearchCategory=90',
-};
 
-async function searchItemsByCategory(categoryId, limit = 100) {
-  const q = CATEGORY_QUERIES[categoryId];
-  if (!q) return [];
-  const url = `${XIVAPI_V2_BASE}/search?query=${encodeURIComponent(q)}&sheets=Item&limit=${limit}&fields=ID,Name,Icon&language=chs`;
-  try {
-    const data = await apiFetch(url);
-    return (data.results || []).map(r => ({
-      ID: r.row_id,
-      Name: r.fields.Name || '',
-      Icon: r.fields.Icon ? r.fields.Icon.path_hr1 || r.fields.Icon.path : null,
-      LevelItem: null,
-    }));
-  } catch {
-    return [];
-  }
-}

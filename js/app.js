@@ -320,40 +320,6 @@ async function doSearch(query) {
   }
 }
 
-function browseCategory(catId) {
-  navigateTo('categories');
-  loadCategoryItems(catId);
-}
-
-async function loadCategoryItems(catId) {
-  const container = document.getElementById('categoryItems');
-  container.innerHTML = '<div class="loading">加载中...</div>';
-  try {
-    const items = await searchItemsByCategory(catId, 100);
-    container.innerHTML = '';
-    if (!items.length) {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">该分类暂未加载到物品</div>';
-      return;
-    }
-    for (const item of items) {
-      const card = document.createElement('div');
-      card.className = 'item-result';
-      const iconUrl = item.Icon ? iconPathToUrl(item.Icon) : '';
-      card.innerHTML = `
-        <img class="item-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
-        <div class="item-result-info">
-          <div class="item-result-name">${item.Name}</div>
-          <div class="item-result-category">ID: ${item.ID}</div>
-        </div>
-      `;
-      card.addEventListener('click', () => showItemDetail(item.ID, item.Name));
-      container.appendChild(card);
-    }
-  } catch (e) {
-    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--accent-red)">加载失败: ${e.message}</div>`;
-  }
-}
-
 async function showItemDetail(itemId, itemName) {
   lastView.itemId = itemId;
   lastView.itemName = itemName;
