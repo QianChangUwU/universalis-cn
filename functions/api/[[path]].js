@@ -17,7 +17,7 @@ export async function onRequest(context) {
     return new Response('Unknown upstream', { status: 404 });
   }
 
-  const proxyPath = '/' + parts.slice(2).join('/');
+  const proxyPath = '/api/' + parts.slice(2).join('/');
   const proxyUrl = upstream + proxyPath + url.search;
 
   const resp = await fetch(proxyUrl, {
