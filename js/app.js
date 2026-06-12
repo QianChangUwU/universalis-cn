@@ -166,6 +166,10 @@ function renderFavButton(itemId) {
 }
 
 function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
 
 function showToast(msg, duration = 3000) {
   const t = document.getElementById('toast');
