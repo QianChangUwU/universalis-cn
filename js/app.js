@@ -357,6 +357,7 @@ async function loadCategoryItems(catId) {
 async function showItemDetail(itemId, itemName) {
   lastView.itemId = itemId;
   lastView.itemName = itemName;
+  currentFilter = 'all';
   navigateTo('item');
   const container = document.getElementById('itemDetail');
   container.innerHTML = '<div class="loading">加载市场数据...</div>';
@@ -382,8 +383,6 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   const targetLabel = currentWorld || currentDC || '猫小胖';
   const allListings = marketData?.listings || [];
   const allHistory = marketData?.recentHistory || [];
-  currentFilter = 'all';
-
   const hasHQ = allListings.some(l => l.hq) || allHistory.some(h => h.hq);
   const hasNQ = allListings.some(l => !l.hq) || allHistory.some(h => !h.hq);
   const showFilter = hasHQ && hasNQ;
