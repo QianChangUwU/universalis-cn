@@ -62,11 +62,33 @@ async function searchItems(query, limit = 50) {
   const lang = detectSearchLang(query);
   const url = `${XIVAPI_V2_BASE}/search?query=${encodeURIComponent(q)}&sheets=Item&limit=${limit}&fields=ID,Name,Icon&language=${lang}`;
   const data = await apiFetch(url);
-  return (data.results || []).map(r => ({
+  const results = (data.results || []).map(r => ({
     ID: r.row_id,
     Name: r.fields.Name || '',
     Icon: r.fields.Icon ? r.fields.Icon.path_hr1 || r.fields.Icon.path : null,
   }));
+  if (lang === 'en' && results.length > 0) {
+    await fillChineseNames(results);
+  }
+  return results;
+}
+
+async function fillChineseNames(results) {
+  const ids = results.map(r => r.ID).join(',');
+  try {
+    const data = await apiFetch(
+      `${XIVAPI_V2_BASE}/sheet/Item?rows=${ids}&fields=Name&language=chs`
+    );
+    const nameMap = {};
+    for (const row of data.rows || []) {
+      nameMap[row.row_id] = row.fields.Name;
+    }
+    for (const r of results) {
+      if (nameMap[r.ID]) r.Name = nameMap[r.ID];
+    }
+  } catch {
+    // fallback: keep English names
+  }
 }
 
 async function getMarketData(dcName, itemId) {
