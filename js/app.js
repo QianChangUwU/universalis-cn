@@ -3,6 +3,8 @@ let currentWorld = '';
 let searchCache = {};
 const HISTORY_KEY = 'universalis_search_history';
 const MAX_HISTORY = 10;
+const FAV_KEY = 'universalis_favorites';
+const MAX_FAV = 100;
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -22,6 +24,7 @@ function navigateTo(page) {
   const navLink = document.querySelector(`.nav-link[data-page="${page}"]`);
   if (navLink) navLink.classList.add('active');
   if (page === 'search') { document.getElementById('searchInput')?.focus(); renderSearchHistory(); }
+  if (page === 'favorites') { renderFavorites(); }
   window.scrollTo({ top: 0 });
 }
 
@@ -64,11 +67,94 @@ function removeSearchHistory(query) {
   renderSearchHistory();
 }
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch { return []; }
 }
+
+function saveFavorites(list) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(list));
+}
+
+function isFavorite(itemId) {
+  return getFavorites().some(f => f.ID === itemId);
+}
+
+function toggleFavorite(itemId, itemName) {
+  let fav = getFavorites();
+  const idx = fav.findIndex(f => f.ID === itemId);
+  if (idx >= 0) {
+    fav.splice(idx, 1);
+    showToast('已取消收藏');
+  } else {
+    if (fav.length >= MAX_FAV) { showToast(`收藏已达上限 ${MAX_FAV} 个`); return; }
+    fav.push({ ID: itemId, Name: itemName });
+    showToast('已收藏');
+  }
+  saveFavorites(fav);
+  return idx < 0;
+}
+
+function renderFavorites() {
+  const el = document.getElementById('favoritesList');
+  const fav = getFavorites();
+  if (!fav.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">暂无收藏，在物品详情页点击 ★ 收藏</div>';
+    return;
+  }
+  el.innerHTML = `<div class="history-header"><span>已收藏 ${fav.length}/${MAX_FAV} 个物品</span><button class="history-clear" onclick="clearFavorites()">清空全部</button></div>`;
+  for (const item of fav) {
+    const card = document.createElement('div');
+    card.className = 'item-result';
+    card.innerHTML = `
+      <div class="item-result-info">
+        <div class="item-result-name">${escapeHtml(item.Name)}</div>
+        <div class="item-result-category">ID: ${item.ID}</div>
+      </div>
+      <span class="fav-price" id="favPrice${item.ID}" style="font-size:0.85rem;color:var(--text-secondary);margin-right:12px;">加载中...</span>
+      <span class="history-tag remove" onclick="event.stopPropagation();removeFavorite(${item.ID})" style="cursor:pointer;color:var(--accent-red);font-size:1.1rem;">×</span>
+    `;
+    card.addEventListener('click', () => showItemDetail(item.ID, item.Name));
+    el.appendChild(card);
+    loadFavPrice(item.ID);
+  }
+}
+
+async function loadFavPrice(itemId) {
+  const el = document.getElementById(`favPrice${itemId}`);
+  if (!el) return;
+  try {
+    const dc = currentDC || '猫小胖';
+    const data = await getMarketData(dc, itemId);
+    const min = data.minPriceNQ ?? data.minPrice ?? 0;
+    el.textContent = min ? `${min.toLocaleString('zh-CN')} G` : '-';
+    el.style.color = 'var(--accent-green)';
+  } catch {
+    el.textContent = '❌';
+    el.style.color = 'var(--accent-red)';
+  }
+}
+
+function clearFavorites() {
+  saveFavorites([]);
+  renderFavorites();
+}
+
+function removeFavorite(itemId) {
+  const fav = getFavorites().filter(f => f.ID !== itemId);
+  saveFavorites(fav);
+  renderFavorites();
+  renderFavButton(itemId);
+}
+
+function renderFavButton(itemId) {
+  const el = document.getElementById('favBtn');
+  if (!el) return;
+  const favd = isFavorite(itemId);
+  el.textContent = favd ? '★ 已收藏' : '☆ 收藏';
+  el.className = favd ? 'fav-btn active' : 'fav-btn';
+}
+
+function escapeHtml(s) {
 
 function showToast(msg, duration = 3000) {
   const t = document.getElementById('toast');
@@ -279,6 +365,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
       <div class="item-header-info">
         <div class="item-header-name">${itemName}</div>
         <div class="item-header-category">${catName} · ${dcName} · ID: ${itemId}</div>
+        <button id="favBtn" class="fav-btn" onclick="toggleFavorite(${itemId},'${itemName.replace(/'/g, "\\'")}');renderFavButton(${itemId})">☆ 收藏</button>
       </div>
     </div>
 
@@ -332,6 +419,8 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
       </table>
     </div>
   `;
+
+  renderFavButton(itemId);
 
   if (history.length >= 2) {
     renderPriceChart(container, history);

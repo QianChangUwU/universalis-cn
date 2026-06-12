@@ -203,6 +203,13 @@ main {
 .item-header-info { flex: 1; }
 .item-header-name { font-size: 1.5rem; font-weight: 600; }
 .item-header-category { color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px; }
+.fav-btn {
+  margin-top: 8px; padding: 4px 14px; border: 1px solid var(--border);
+  border-radius: 16px; background: var(--bg-card); color: var(--text-primary);
+  cursor: pointer; font-size: 0.8rem; transition: all 0.15s;
+}
+.fav-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+.fav-btn.active { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(210,153,34,0.1); }
 
 .price-summary {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

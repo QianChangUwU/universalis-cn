@@ -36,6 +36,7 @@
       <a href="#" onclick="navigateTo('search')" class="nav-link" data-page="search">物品搜索</a>
       <a href="#" onclick="navigateTo('categories')" class="nav-link" data-page="categories">物品分类</a>
       <a href="#" onclick="navigateTo('about')" class="nav-link" data-page="about">关于</a>
+      <a href="#" onclick="navigateTo('favorites')" class="nav-link" data-page="favorites">收藏</a>
     </div>
   </nav>
 
@@ -126,6 +127,13 @@
       <h2>物品分类浏览</h2>
       <div class="subcategory-list" id="subcategoryList"></div>
       <div class="category-items" id="categoryItems"></div>
+    </section>
+
+    <!-- Favorites Page -->
+    <section id="page-favorites" class="page">
+      <h2>我的收藏</h2>
+      <p style="color:var(--text-secondary);margin-bottom:16px;">点击物品查看详细价格，支持大区切换</p>
+      <div id="favoritesList"></div>
     </section>
 
     <!-- About Page -->
