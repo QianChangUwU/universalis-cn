@@ -133,12 +133,14 @@ async function searchItemsByCategory(categoryId, limit = 100) {
   const url = `${XIVAPI_V2_BASE}/search?query=${encodeURIComponent(q)}&sheets=Item&limit=${limit}&fields=ID,Name,Icon&language=en`;
   try {
     const data = await apiFetch(url);
-    return (data.results || []).map(r => ({
+    const results = (data.results || []).map(r => ({
       ID: r.row_id,
       Name: r.fields.Name || '',
       Icon: r.fields.Icon ? r.fields.Icon.path_hr1 || r.fields.Icon.path : null,
       LevelItem: null,
     }));
+    await fillChineseNames(results);
+    return results;
   } catch {
     return [];
   }
