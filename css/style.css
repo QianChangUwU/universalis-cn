@@ -281,6 +281,13 @@ tr:hover td { background: var(--bg-hover); }
 }
 .toast.show { opacity: 1; }
 
+.more-btn {
+  padding: 6px 20px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-card); color: var(--accent); cursor: pointer;
+  font-size: 0.85rem; transition: all 0.15s;
+}
+.more-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+
 .filter-bar { display: flex; gap: 6px; margin-bottom: 12px; }
 .filter-btn {
   padding: 4px 16px; border: 1px solid var(--border); border-radius: 16px;

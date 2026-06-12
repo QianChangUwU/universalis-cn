@@ -375,6 +375,7 @@ async function showItemDetail(itemId, itemName) {
 
 let currentFilter = 'all';
 let cachedItemDetail = null;
+let listingsLimit = 10;
 
 function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   cachedItemDetail = { container, itemId, itemName, itemInfo, marketData };
@@ -386,6 +387,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   const hasHQ = allListings.some(l => l.hq) || allHistory.some(h => h.hq);
   const hasNQ = allListings.some(l => !l.hq) || allHistory.some(h => !h.hq);
   const showFilter = hasHQ && hasNQ;
+  listingsLimit = 10;
 
   function filterData(list) {
     if (currentFilter === 'all') return list;
@@ -395,11 +397,13 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   function render() {
     const listings = filterData(allListings);
     const history = filterData(allHistory);
-    const minPrice = Math.min(...listings.map(l => l.pricePerUnit), 0);
-    const avgPrice = listings.length ? listings.reduce((s, l) => s + l.pricePerUnit, 0) / listings.length : 0;
-    const maxPrice = Math.max(...listings.map(l => l.pricePerUnit), 0);
-    const sumQty = listings.reduce((s, l) => s + l.quantity, 0);
-    const hqCount = listings.filter(l => l.hq).length;
+    const visibleListings = listings.slice(0, listingsLimit);
+    const showMore = listings.length > visibleListings.length;
+    const minPrice = Math.min(...visibleListings.map(l => l.pricePerUnit), 0);
+    const avgPrice = visibleListings.length ? visibleListings.reduce((s, l) => s + l.pricePerUnit, 0) / visibleListings.length : 0;
+    const maxPrice = Math.max(...visibleListings.map(l => l.pricePerUnit), 0);
+    const sumQty = visibleListings.reduce((s, l) => s + l.quantity, 0);
+    const hqCount = visibleListings.filter(l => l.hq).length;
 
     container.innerHTML = `
       <div class="item-header">
@@ -417,7 +421,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
         <div class="price-box"><div class="label">最高价</div><div class="value red">${formatGil(maxPrice)}</div></div>
         <div class="price-box"><div class="label">在售数量</div><div class="value">${sumQty}</div></div>
         <div class="price-box"><div class="label">在售件数</div><div class="value">${listings.length}</div></div>
-        <div class="price-box"><div class="label">HQ占比</div><div class="value gold">${listings.length ? Math.round(hqCount / listings.length * 100) + '%' : '-'}</div></div>
+        <div class="price-box"><div class="label">HQ占比</div><div class="value gold">${visibleListings.length ? Math.round(hqCount / visibleListings.length * 100) + '%' : '-'}</div></div>
       </div>
       ${showFilter ? `
       <div class="filter-bar">
@@ -433,7 +437,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
             <th>价格</th><th>数量</th><th>品质</th><th>服务器</th><th>雇员</th>
           </tr></thead>
           <tbody>
-            ${listings.length ? listings.map(l => `
+            ${visibleListings.length ? visibleListings.map(l => `
               <tr>
                 <td>${formatGil(l.pricePerUnit)}</td>
                 <td>${l.quantity}</td>
@@ -444,6 +448,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
             `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">暂无在售信息</td></tr>'}
           </tbody>
         </table>
+        ${showMore ? `<div style="text-align:center;padding:8px;"><button class="more-btn" onclick="showMoreListings()">展示更多（剩余 ${listings.length - visibleListings.length} 条）</button></div>` : ''}
       </div>
 
       <div class="data-section-title">成交记录 <span class="count-badge">${history.length} 条</span></div>
@@ -475,6 +480,14 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   render();
 }
 
+function showMoreListings() {
+  listingsLimit = Math.min(listingsLimit + 10, 50);
+  if (cachedItemDetail) {
+    const { container, itemId, itemName, itemInfo, marketData } = cachedItemDetail;
+    renderItemDetail(container, itemId, itemName, itemInfo, marketData);
+  }
+}
+
 function setFilter(val) {
   currentFilter = val;
   if (cachedItemDetail && document.getElementById('page-item').classList.contains('active')) {
@@ -485,17 +498,25 @@ function setFilter(val) {
 
 function renderPriceChart(container, history) {
   const sorted = [...history].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  const nqPoints = sorted.filter(p => !p.hq);
+  const hqPoints = sorted.filter(p => p.hq);
+  const hasBoth = nqPoints.length >= 2 && hqPoints.length >= 2;
+
   const chartDiv = document.createElement('div');
+  chartDiv.id = 'chartContainer';
+  const chartId = 'priceChart_' + Date.now();
   chartDiv.innerHTML = `
-    <div class="data-section-title">价格走势</div>
-    <div id="priceChart" style="height:200px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--border-radius);padding:16px;position:relative;"></div>
+    <div class="data-section-title">价格走势
+      ${hasBoth ? '<span style="font-size:0.75rem;color:var(--text-secondary);font-weight:400;margin-left:8px;"><span style="color:#58a6ff">● NQ</span> <span style="color:#d29922;margin-left:8px;">● HQ</span></span>' : ''}
+    </div>
+    <div id="${chartId}" style="height:220px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--border-radius);padding:16px;position:relative;"></div>
   `;
   container.appendChild(chartDiv);
 
   const canvas = document.createElement('canvas');
   canvas.style.width = '100%';
   canvas.style.height = '100%';
-  const chartEl = document.getElementById('priceChart');
+  const chartEl = document.getElementById(chartId);
   chartEl.appendChild(canvas);
   const ctx = canvas.getContext('2d');
   canvas.width = chartEl.clientWidth * 2;
@@ -506,49 +527,80 @@ function renderPriceChart(container, history) {
 
   const w = chartEl.clientWidth;
   const h = chartEl.clientHeight;
-  const pad = { top: 20, bottom: 30, left: 60, right: 20 };
+  const pad = { top: 20, bottom: 36, left: 60, right: 20 };
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
 
-  const prices = sorted.map(x => x.pricePerUnit);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const range = max - min || 1;
+  const allPrices = sorted.map(x => x.pricePerUnit);
+  const minAll = Math.min(...allPrices);
+  const maxAll = Math.max(...allPrices);
+  const range = maxAll - minAll || 1;
+
+  const timeMin = sorted[0]?.timestamp || 0;
+  const timeMax = sorted[sorted.length - 1]?.timestamp || 1;
+  const timeRange = timeMax - timeMin || 1;
 
   ctx.clearRect(0, 0, w, h);
-  ctx.strokeStyle = '#30363d';
-  ctx.lineWidth = 1;
 
+  function drawLine(points, color) {
+    if (points.length < 2) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < points.length; i++) {
+      const x = pad.left + ((points[i].timestamp - timeMin) / timeRange) * chartW;
+      const y = pad.top + chartH - ((points[i].pricePerUnit - minAll) / range) * chartH;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    for (const p of points) {
+      const x = pad.left + ((p.timestamp - timeMin) / timeRange) * chartW;
+      const y = pad.top + chartH - ((p.pricePerUnit - minAll) / range) * chartH;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Grid lines + Y-axis labels
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + (chartH / 4) * i;
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(pad.left, y);
     ctx.lineTo(w - pad.right, y);
     ctx.stroke();
-    const val = max - (range / 4) * i;
+    const val = maxAll - (range / 4) * i;
     ctx.fillStyle = '#8b949e';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(formatGil(Math.round(val)), pad.left - 8, y + 4);
   }
 
-  ctx.strokeStyle = '#58a6ff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let i = 0; i < sorted.length; i++) {
-    const x = pad.left + (i / Math.max(sorted.length - 1, 1)) * chartW;
-    const y = pad.top + chartH - ((sorted[i].pricePerUnit - min) / range) * chartH;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  // X-axis time labels
+  const labelCount = Math.min(6, sorted.length);
+  for (let i = 0; i < labelCount; i++) {
+    const idx = Math.round((sorted.length - 1) * (i / (labelCount - 1)));
+    const p = sorted[idx];
+    if (!p) continue;
+    const x = pad.left + ((p.timestamp - timeMin) / timeRange) * chartW;
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(formatTime(p.timestamp), x, h - pad.bottom + 16);
   }
-  ctx.stroke();
 
-  for (let i = 0; i < sorted.length; i++) {
-    const x = pad.left + (i / Math.max(sorted.length - 1, 1)) * chartW;
-    const y = pad.top + chartH - ((sorted[i].pricePerUnit - min) / range) * chartH;
-    ctx.fillStyle = sorted[i].hq ? '#d29922' : '#58a6ff';
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fill();
+  // Draw NQ line first (behind), then HQ line (on top)
+  if (hasBoth) {
+    drawLine(nqPoints, '#58a6ff');
+    drawLine(hqPoints, '#d29922');
+  } else if (nqPoints.length >= 2) {
+    drawLine(nqPoints, '#58a6ff');
+  } else if (hqPoints.length >= 2) {
+    drawLine(hqPoints, '#d29922');
   }
 }
 
