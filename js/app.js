@@ -1,6 +1,7 @@
 let currentDC = '猫小胖';
 let currentWorld = '';
 let searchCache = {};
+let lastView = { page: 'home', itemId: null, itemName: '' };
 const HISTORY_KEY = 'universalis_search_history';
 const MAX_HISTORY = 10;
 const FAV_KEY = 'universalis_favorites';
@@ -17,6 +18,8 @@ async function init() {
 }
 
 function navigateTo(page) {
+  lastView.page = page;
+  if (page !== 'item') { lastView.itemId = null; lastView.itemName = ''; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById(`page-${page}`);
   if (el) el.classList.add('active');
@@ -221,10 +224,20 @@ async function changeDC(val) {
   currentDC = val;
   currentWorld = '';
   await loadWorldSelector(val);
+  refreshCurrentView();
+}
+
+function refreshCurrentView() {
+  if (lastView.page === 'item' && lastView.itemId) {
+    showItemDetail(lastView.itemId, lastView.itemName);
+  } else if (lastView.page === 'favorites') {
+    renderFavorites();
+  }
 }
 
 function changeWorld(val) {
   currentWorld = val;
+  refreshCurrentView();
 }
 
 async function loadStats() {
@@ -330,6 +343,8 @@ async function loadCategoryItems(catId) {
 }
 
 async function showItemDetail(itemId, itemName) {
+  lastView.itemId = itemId;
+  lastView.itemName = itemName;
   navigateTo('item');
   const container = document.getElementById('itemDetail');
   container.innerHTML = '<div class="loading">加载市场数据...</div>';
