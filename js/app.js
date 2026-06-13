@@ -612,8 +612,7 @@ function renderPriceChart(container, history) {
   container.appendChild(chartDiv);
 
   const canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
+  canvas.style.display = 'block';
   const chartEl = document.getElementById(chartId);
   chartEl.appendChild(canvas);
   const ctx = canvas.getContext('2d');
