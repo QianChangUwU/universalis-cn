@@ -705,11 +705,16 @@ function renderPriceChart(container, history) {
   tooltip.style.cssText = 'position:absolute;pointer-events:none;background:#1c2333;border:1px solid #58a6ff;border-radius:6px;padding:6px 10px;font-size:0.8rem;color:#e6edf3;z-index:10;display:none;white-space:nowrap;';
   chartEl.appendChild(tooltip);
 
+  const dot = document.createElement('div');
+  dot.style.cssText = 'position:absolute;pointer-events:none;border-radius:50%;z-index:9;display:none;';
+  chartEl.appendChild(dot);
+
   const allPoints = sorted.map(p => ({
     x: pad.left + ((p.timestamp - timeMin) / timeRange) * chartW,
     y: pad.top + chartH - ((p.pricePerUnit - minAll) / range) * chartH,
     label: `${p.hq ? 'HQ' : 'NQ'} ${formatGil(p.pricePerUnit)}`,
     time: formatTime(p.timestamp),
+    color: p.hq ? '#d29922' : '#58a6ff',
   }));
 
   chartEl.addEventListener('mousemove', function(e) {
@@ -733,13 +738,22 @@ function renderPriceChart(container, history) {
       if (ty < 0) ty = closest.y + 12;
       tooltip.style.left = tx + 'px';
       tooltip.style.top = ty + 'px';
+      dot.style.display = 'block';
+      dot.style.border = `3px solid ${closest.color}`;
+      dot.style.background = 'rgba(13,17,23,0.8)';
+      dot.style.width = '16px';
+      dot.style.height = '16px';
+      dot.style.left = (closest.x - 8) + 'px';
+      dot.style.top = (closest.y - 8) + 'px';
     } else {
       tooltip.style.display = 'none';
+      dot.style.display = 'none';
     }
   });
 
   chartEl.addEventListener('mouseleave', function() {
     tooltip.style.display = 'none';
+    dot.style.display = 'none';
   });
 }
 
