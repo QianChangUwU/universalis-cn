@@ -700,6 +700,10 @@ function renderPriceChart(container, history) {
     drawLine(hqPoints, '#d29922');
   }
 
+  const cs = getComputedStyle(chartEl);
+  const pox = parseFloat(cs.paddingLeft);
+  const poy = parseFloat(cs.paddingTop);
+
   const tooltip = document.createElement('div');
   tooltip.style.cssText = 'position:absolute;pointer-events:none;background:#1c2333;border:1px solid #58a6ff;border-radius:6px;padding:6px 10px;font-size:0.8rem;color:#e6edf3;z-index:10;display:none;white-space:nowrap;';
   chartEl.appendChild(tooltip);
@@ -727,14 +731,16 @@ function renderPriceChart(container, history) {
       if (d < minDist) { minDist = d; closest = pt; }
     }
     if (closest && minDist < chartW * 0.3) {
+      const cx = closest.x + pox;
+      const cy = closest.y + poy;
       tooltip.style.display = 'block';
       tooltip.textContent = `${closest.time} · ${closest.label}`;
       const tw = tooltip.offsetWidth;
       const th = tooltip.offsetHeight;
-      let tx = closest.x + 12;
-      let ty = closest.y - th - 8;
-      if (tx + tw > w) tx = closest.x - tw - 12;
-      if (ty < 0) ty = closest.y + 12;
+      let tx = cx + 12;
+      let ty = cy - th - 8;
+      if (tx + tw > w) tx = cx - tw - 12;
+      if (ty < 0) ty = cy + 12;
       tooltip.style.left = tx + 'px';
       tooltip.style.top = ty + 'px';
       dot.style.display = 'block';
@@ -742,8 +748,8 @@ function renderPriceChart(container, history) {
       dot.style.background = 'rgba(13,17,23,0.8)';
       dot.style.width = '16px';
       dot.style.height = '16px';
-      dot.style.left = (closest.x - 8) + 'px';
-      dot.style.top = (closest.y - 8) + 'px';
+      dot.style.left = (cx - 8) + 'px';
+      dot.style.top = (cy - 8) + 'px';
     } else {
       tooltip.style.display = 'none';
       dot.style.display = 'none';
