@@ -35,8 +35,8 @@
       <a href="#" onclick="navigateTo('home')" class="nav-link active" data-page="home">首页</a>
       <a href="#" onclick="navigateTo('search')" class="nav-link" data-page="search">物品搜索</a>
 
-      <a href="#" onclick="navigateTo('about')" class="nav-link" data-page="about">关于</a>
       <a href="#" onclick="navigateTo('favorites')" class="nav-link" data-page="favorites">收藏</a>
+      <a href="#" onclick="navigateTo('about')" class="nav-link" data-page="about">关于</a>
     </div>
   </nav>
 
@@ -110,7 +110,7 @@
 
     <!-- Item Detail Page -->
     <section id="page-item" class="page">
-      <button class="back-btn" onclick="navigateTo('home')">← 返回首页</button>
+      <button class="back-btn" onclick="goBack()">← 返回</button>
       <div id="itemDetail" class="item-detail">
         <div class="loading">加载中...</div>
       </div>

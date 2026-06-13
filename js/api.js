@@ -3,8 +3,6 @@ const API_MODE = 'proxy';
 const UNIVERSALIS_BASE = API_MODE === 'proxy' ? '/api/universalis' : 'https://universalis.app/api';
 const XIVAPI_V2_BASE = API_MODE === 'proxy' ? '/api/xivapi' : 'https://xivapi-v2.xivcdn.com/api';
 
-const CN_DC_NAMES = ['陆行鸟', '莫古力', '猫小胖', '豆豆柴'];
-
 let cachedDataCenters = null;
 let cachedWorlds = null;
 
@@ -100,12 +98,6 @@ async function fillChineseNames(results) {
 async function getMarketData(dcName, itemId, entries = 100) {
   const encoded = encodeURIComponent(dcName);
   const url = `${UNIVERSALIS_BASE}/v2/${encoded}/${itemId}?entries=${entries}`;
-  return apiFetch(url);
-}
-
-async function getMarketDataWorld(worldName, itemId) {
-  const encoded = encodeURIComponent(worldName);
-  const url = `${UNIVERSALIS_BASE}/v2/${encoded}/${itemId}`;
   return apiFetch(url);
 }
 

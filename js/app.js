@@ -1,7 +1,7 @@
 let currentDC = '猫小胖';
 let currentWorld = '';
-let searchCache = {};
 let lastView = { page: 'home', itemId: null, itemName: '' };
+let prevPage = 'home';
 const HISTORY_KEY = 'universalis_search_history';
 const MAX_HISTORY = 10;
 const FAV_KEY = 'universalis_favorites';
@@ -55,7 +55,16 @@ function restoreLastView() {
   } catch {}
 }
 
+function goBack() {
+  if (prevPage === 'search' || prevPage === 'about' || prevPage === 'favorites') {
+    navigateTo(prevPage);
+  } else {
+    navigateTo('home');
+  }
+}
+
 function navigateTo(page) {
+  prevPage = lastView.page;
   lastView.page = page;
   if (page !== 'item') { lastView.itemId = null; lastView.itemName = ''; }
   saveState();
@@ -67,6 +76,8 @@ function navigateTo(page) {
   if (navLink) navLink.classList.add('active');
   if (page === 'search') { document.getElementById('searchInput')?.focus(); renderSearchHistory(); }
   if (page === 'favorites') { renderFavorites(); }
+  const titles = { home: '首页', search: '物品搜索', favorites: '我的收藏', about: '关于本站', item: '物品详情' };
+  document.title = `Universalis 国服市场板 - ${titles[page] || 'FFXIV 物价查询'}`;
   window.scrollTo({ top: 0 });
 }
 
@@ -333,6 +344,8 @@ async function loadCnDCCards() {
     `;
     card.querySelector('h3').addEventListener('click', () => {
       currentDC = dc.name;
+      currentWorld = '';
+      saveState();
       document.getElementById('dcSelect').value = dc.name;
       loadWorldSelector(dc.name);
       showToast(`已切换到 ${dc.name}`);
@@ -687,6 +700,47 @@ function renderPriceChart(container, history) {
   } else if (hqPoints.length >= 2) {
     drawLine(hqPoints, '#d29922');
   }
+
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = 'position:absolute;pointer-events:none;background:#1c2333;border:1px solid #58a6ff;border-radius:6px;padding:6px 10px;font-size:0.8rem;color:#e6edf3;z-index:10;display:none;white-space:nowrap;';
+  chartEl.appendChild(tooltip);
+
+  const allPoints = sorted.map(p => ({
+    x: pad.left + ((p.timestamp - timeMin) / timeRange) * chartW,
+    y: pad.top + chartH - ((p.pricePerUnit - minAll) / range) * chartH,
+    label: `${p.hq ? 'HQ' : 'NQ'} ${formatGil(p.pricePerUnit)}`,
+    time: formatTime(p.timestamp),
+  }));
+
+  chartEl.addEventListener('mousemove', function(e) {
+    const rect = this.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    let closest = null;
+    let minDist = Infinity;
+    for (const pt of allPoints) {
+      const d = Math.abs(pt.x - mx);
+      if (d < minDist) { minDist = d; closest = pt; }
+    }
+    if (closest && minDist < chartW * 0.3) {
+      tooltip.style.display = 'block';
+      tooltip.textContent = `${closest.time} · ${closest.label}`;
+      const tw = tooltip.offsetWidth;
+      const th = tooltip.offsetHeight;
+      let tx = closest.x + 12;
+      let ty = closest.y - th - 8;
+      if (tx + tw > w) tx = closest.x - tw - 12;
+      if (ty < 0) ty = closest.y + 12;
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+
+  chartEl.addEventListener('mouseleave', function() {
+    tooltip.style.display = 'none';
+  });
 }
 
 async function loadAboutPage() {
