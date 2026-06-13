@@ -717,7 +717,7 @@ function renderPriceChart(container, history) {
   }));
 
   chartEl.addEventListener('mousemove', function(e) {
-    const rect = this.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
     let closest = null;
