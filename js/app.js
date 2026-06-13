@@ -23,11 +23,42 @@ async function init() {
     return;
   }
   setupNavHighlight();
+  restoreLastView();
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('universalis_last_view', JSON.stringify(lastView));
+    localStorage.setItem('universalis_dc', currentDC);
+    localStorage.setItem('universalis_world', currentWorld);
+  } catch {}
+}
+
+function restoreLastView() {
+  try {
+    const saved = localStorage.getItem('universalis_last_view');
+    if (saved) {
+      const view = JSON.parse(saved);
+      if (view.page === 'search') {
+        navigateTo('search');
+        return;
+      }
+      if (view.page === 'favorites') {
+        navigateTo('favorites');
+        return;
+      }
+      if (view.page === 'item' && view.itemId) {
+        showItemDetail(view.itemId, view.itemName);
+        return;
+      }
+    }
+  } catch {}
 }
 
 function navigateTo(page) {
   lastView.page = page;
   if (page !== 'item') { lastView.itemId = null; lastView.itemName = ''; }
+  saveState();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById(`page-${page}`);
   if (el) el.classList.add('active');
@@ -224,9 +255,16 @@ async function loadDCSelector() {
     opt.textContent = dc.name;
     dcSelect.appendChild(opt);
   }
-  currentDC = dcs[0]?.name || '猫小胖';
+  const savedDc = localStorage.getItem('universalis_dc');
+  const restoreDc = dcs.some(d => d.name === savedDc) ? savedDc : dcs[0]?.name;
+  currentDC = restoreDc || '猫小胖';
   dcSelect.value = currentDC;
   await loadWorldSelector(currentDC);
+  const savedWorld = localStorage.getItem('universalis_world');
+  if (savedWorld) {
+    currentWorld = savedWorld;
+    worldSelect.value = savedWorld;
+  }
 }
 
 async function loadWorldSelector(dcName) {
@@ -249,6 +287,7 @@ async function loadWorldSelector(dcName) {
 async function changeDC(val) {
   currentDC = val;
   currentWorld = '';
+  saveState();
   await loadWorldSelector(val);
   refreshCurrentView();
 }
@@ -265,6 +304,7 @@ function refreshCurrentView() {
 
 function changeWorld(val) {
   currentWorld = val;
+  saveState();
   refreshCurrentView();
 }
 
