@@ -386,6 +386,7 @@ async function showItemDetail(itemId, itemName) {
   lastView.itemName = itemName;
   currentFilter = 'all';
   listingsLimit = 10;
+  historyLimit = 10;
   navigateTo('item');
   const container = document.getElementById('itemDetail');
   container.innerHTML = '<div class="loading">加载市场数据...</div>';
@@ -404,6 +405,7 @@ async function showItemDetail(itemId, itemName) {
 let currentFilter = 'all';
 let cachedItemDetail = null;
 let listingsLimit = 10;
+let historyLimit = 10;
 
 function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
   cachedItemDetail = { container, itemId, itemName, itemInfo, marketData };
@@ -426,6 +428,8 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
     const history = filterData(allHistory);
     const visibleListings = listings.slice(0, listingsLimit);
     const showMore = listings.length > visibleListings.length;
+    const visibleHistory = history.slice(0, historyLimit);
+    const showMoreHistory = history.length > visibleHistory.length;
     const minPrice = Math.min(...visibleListings.map(l => l.pricePerUnit), 0);
     const avgPrice = visibleListings.length ? visibleListings.reduce((s, l) => s + l.pricePerUnit, 0) / visibleListings.length : 0;
     const maxPrice = Math.max(...visibleListings.map(l => l.pricePerUnit), 0);
@@ -485,7 +489,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
             <th>价格</th><th>数量</th><th>品质</th><th>服务器</th><th>买家</th><th>时间</th>
           </tr></thead>
           <tbody>
-            ${history.length ? history.map(h => `
+            ${visibleHistory.length ? visibleHistory.map(h => `
               <tr>
                 <td>${formatGil(h.pricePerUnit)}</td>
                 <td>${h.quantity}</td>
@@ -497,6 +501,7 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
             `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">暂无成交记录</td></tr>'}
           </tbody>
         </table>
+        ${showMoreHistory ? `<div style="text-align:center;padding:8px;"><button class="more-btn" onclick="showMoreHistory()">展示更多（剩余 ${history.length - visibleHistory.length} 条）</button></div>` : ''}
       </div>
     `;
 
@@ -509,6 +514,14 @@ function renderItemDetail(container, itemId, itemName, itemInfo, marketData) {
 
 function showMoreListings() {
   listingsLimit = Math.min(listingsLimit + 10, 50);
+  if (cachedItemDetail) {
+    const { container, itemId, itemName, itemInfo, marketData } = cachedItemDetail;
+    renderItemDetail(container, itemId, itemName, itemInfo, marketData);
+  }
+}
+
+function showMoreHistory() {
+  historyLimit = Math.min(historyLimit + 20, 100);
   if (cachedItemDetail) {
     const { container, itemId, itemName, itemInfo, marketData } = cachedItemDetail;
     renderItemDetail(container, itemId, itemName, itemInfo, marketData);
