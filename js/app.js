@@ -64,7 +64,7 @@ function renderSearchHistory() {
   const h = getSearchHistory();
   if (!h.length) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="history-header"><span>搜索历史</span><button class="history-clear" onclick="clearSearchHistory()">清空</button></div>`
-    + h.map(s => `<span class="history-tag" onclick="doSearch('${s.replace(/'/g, "\\'")}')">${escapeHtml(s)}<span class="remove" onclick="event.stopPropagation();removeSearchHistory('${s.replace(/'/g, "\\'")}')">×</span></span>`).join('');
+    + h.map(s => `<span class="history-tag" onclick="doSearch(decodeURIComponent('${encodeURIComponent(s)}'))">${escapeHtml(s)}<span class="remove" onclick="event.stopPropagation();removeSearchHistory(decodeURIComponent('${encodeURIComponent(s)}'))">×</span></span>`).join('');
 }
 
 function clearSearchHistory() {
@@ -243,7 +243,9 @@ function refreshCurrentView() {
   if (lastView.page === 'item' && lastView.itemId) {
     showItemDetail(lastView.itemId, lastView.itemName);
   } else if (lastView.page === 'favorites') {
-    renderFavorites();
+    const el = document.getElementById('favoritesList');
+    el.innerHTML = '<div class="loading">切换服务器，刷新价格中...</div>';
+    setTimeout(() => renderFavorites(), 50);
   }
 }
 
@@ -287,36 +289,81 @@ async function loadCnDCCards() {
   }
 }
 
+let lastSearchQuery = '';
+let lastSearchPage = 0;
+let lastSearchTotal = 0;
+const SEARCH_PAGE_SIZE = 50;
+
+function renderItemCards(items, container) {
+  for (const item of items) {
+    const card = document.createElement('div');
+    card.className = 'item-result';
+    const iconUrl = item.Icon ? iconPathToUrl(item.Icon) : '';
+    card.innerHTML = `
+      <img class="item-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
+      <div class="item-result-info">
+        <div class="item-result-name">${item.Name}</div>
+        <div class="item-result-category">ID: ${item.ID}</div>
+      </div>
+    `;
+    card.addEventListener('click', () => showItemDetail(item.ID, item.Name));
+    container.appendChild(card);
+  }
+}
+
 async function doSearch(query) {
   query = query.trim();
   if (!query) return;
   navigateTo('search');
   saveSearchHistory(query);
+  lastSearchQuery = query;
+  lastSearchPage = 1;
   const resultsDiv = document.getElementById('searchResults');
   resultsDiv.innerHTML = '<div class="loading">搜索中...</div>';
   try {
-    const results = await searchItems(query);
+    const { results, pagination } = await searchItems(query, SEARCH_PAGE_SIZE, 1);
+    lastSearchTotal = results.length;
     if (!results.length) {
       resultsDiv.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">没有找到相关物品，请尝试其他关键词</div>';
       return;
     }
+    if (pagination) lastSearchTotal = pagination.results_total || pagination.total || results.length;
     resultsDiv.innerHTML = '';
-    for (const item of results) {
-      const card = document.createElement('div');
-      card.className = 'item-result';
-      const iconUrl = item.Icon ? iconPathToUrl(item.Icon) : '';
-      card.innerHTML = `
-        <img class="item-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
-        <div class="item-result-info">
-          <div class="item-result-name">${item.Name}</div>
-          <div class="item-result-category">ID: ${item.ID}</div>
-        </div>
-      `;
-      card.addEventListener('click', () => showItemDetail(item.ID, item.Name));
-      resultsDiv.appendChild(card);
+    renderItemCards(results, resultsDiv);
+    if (lastSearchTotal > results.length) {
+      const moreWrap = document.createElement('div');
+      moreWrap.id = 'searchMoreWrap';
+      moreWrap.style.cssText = 'text-align:center;padding:16px;';
+      moreWrap.innerHTML = `<button class="more-btn" onclick="loadMoreSearch()">加载更多（共 ${lastSearchTotal} 条）</button>`;
+      resultsDiv.appendChild(moreWrap);
     }
   } catch (e) {
     resultsDiv.innerHTML = `<div style="text-align:center;padding:40px;color:var(--accent-red)">搜索失败: ${e.message}</div>`;
+  }
+}
+
+async function loadMoreSearch() {
+  lastSearchPage++;
+  const moreWrap = document.getElementById('searchMoreWrap');
+  if (moreWrap) moreWrap.innerHTML = '<div class="loading" style="padding:16px;">加载中...</div>';
+  try {
+    const { results, pagination } = await searchItems(lastSearchQuery, SEARCH_PAGE_SIZE, lastSearchPage);
+    if (pagination) lastSearchTotal = pagination.results_total || pagination.total || lastSearchTotal;
+    const resultsDiv = document.getElementById('searchResults');
+    renderItemCards(results, resultsDiv);
+    const loaded = resultsDiv.querySelectorAll('.item-result').length;
+    if (loaded < lastSearchTotal) {
+      const wrap = document.getElementById('searchMoreWrap') || document.createElement('div');
+      wrap.id = 'searchMoreWrap';
+      wrap.style.cssText = 'text-align:center;padding:16px;';
+      wrap.innerHTML = `<button class="more-btn" onclick="loadMoreSearch()">加载更多（共 ${lastSearchTotal} 条，已显示 ${loaded} 条）</button>`;
+      if (!wrap.parentNode) resultsDiv.appendChild(wrap);
+    } else {
+      if (moreWrap) moreWrap.remove();
+    }
+  } catch (e) {
+    const wrap = document.getElementById('searchMoreWrap');
+    if (wrap) wrap.innerHTML = `<div style="text-align:center;color:var(--accent-red);padding:8px;">加载失败: ${e.message}</div>`;
   }
 }
 
@@ -463,7 +510,12 @@ function setFilter(val) {
 }
 
 function renderPriceChart(container, history) {
+  const existing = container.querySelector('#chartContainer');
+  if (existing) existing.remove();
   const sorted = [...history].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  for (const p of sorted) {
+    if (p.timestamp && p.timestamp < 1e12) p.timestamp *= 1000;
+  }
   const nqPoints = sorted.filter(p => !p.hq);
   const hqPoints = sorted.filter(p => p.hq);
   const hasBoth = nqPoints.length >= 2 && hqPoints.length >= 2;

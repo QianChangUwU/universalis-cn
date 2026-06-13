@@ -63,10 +63,10 @@ function detectSearchLang(query) {
   return /[\u4e00-\u9fff]/.test(query) ? 'chs' : 'en';
 }
 
-async function searchItems(query, limit = 50) {
+async function searchItems(query, limit = 50, page = 1) {
   const q = `Name~"${query.replace(/"/g, '')}"`;
   const lang = detectSearchLang(query);
-  const url = `${XIVAPI_V2_BASE}/search?query=${encodeURIComponent(q)}&sheets=Item&limit=${limit}&fields=ID,Name,Icon&language=${lang}`;
+  const url = `${XIVAPI_V2_BASE}/search?query=${encodeURIComponent(q)}&sheets=Item&limit=${limit}&page=${page}&fields=ID,Name,Icon&language=${lang}`;
   const data = await apiFetch(url);
   const results = (data.results || []).map(r => ({
     ID: r.row_id,
@@ -76,7 +76,7 @@ async function searchItems(query, limit = 50) {
   if (lang === 'en' && results.length > 0) {
     await fillChineseNames(results);
   }
-  return results;
+  return { results, pagination: data.pagination || null };
 }
 
 async function fillChineseNames(results) {
