@@ -97,9 +97,9 @@ async function fillChineseNames(results) {
   }
 }
 
-async function getMarketData(dcName, itemId) {
+async function getMarketData(dcName, itemId, entries = 100) {
   const encoded = encodeURIComponent(dcName);
-  const url = `${UNIVERSALIS_BASE}/v2/${encoded}/${itemId}`;
+  const url = `${UNIVERSALIS_BASE}/v2/${encoded}/${itemId}?entries=${entries}`;
   return apiFetch(url);
 }
 
