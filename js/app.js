@@ -186,7 +186,7 @@ function formatGil(num) {
 
 function formatTime(ts) {
   if (!ts) return '-';
-  const d = typeof ts === 'number' && ts > 1e15 ? new Date(ts / 1000) : new Date(ts);
+  const d = typeof ts === 'number' ? new Date(ts < 1e12 ? ts * 1000 : ts) : new Date(ts);
   const now = Date.now();
   const diff = now - d.getTime();
   if (diff < 60000) return '刚刚';
