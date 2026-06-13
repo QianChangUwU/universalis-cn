@@ -105,18 +105,32 @@ function toggleFavorite(itemId, itemName) {
   return idx < 0;
 }
 
-function renderFavorites() {
+async function renderFavorites() {
   const el = document.getElementById('favoritesList');
   const fav = getFavorites();
   if (!fav.length) {
     el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">暂无收藏，在物品详情页点击 ★ 收藏</div>';
     return;
   }
+  el.innerHTML = '<div class="loading">加载收藏数据...</div>';
+  const ids = fav.map(f => f.ID).join(',');
+  try {
+    const data = await apiFetch(`${XIVAPI_V2_BASE}/sheet/Item?rows=${ids}&fields=Icon&language=chs`);
+    const iconMap = {};
+    for (const row of data.rows || []) {
+      iconMap[row.row_id] = row.fields.Icon ? row.fields.Icon.path_hr1 || row.fields.Icon.path : null;
+    }
+    for (const item of fav) {
+      item.Icon = iconMap[item.ID] || null;
+    }
+  } catch {}
   el.innerHTML = `<div class="history-header"><span>已收藏 ${fav.length}/${MAX_FAV} 个物品</span><button class="history-clear" onclick="clearFavorites()">清空全部</button></div>`;
   for (const item of fav) {
     const card = document.createElement('div');
     card.className = 'item-result';
+    const iconUrl = item.Icon ? iconPathToUrl(item.Icon) : '';
     card.innerHTML = `
+      <img class="item-icon" src="${iconUrl}" alt="" onerror="this.style.display='none'">
       <div class="item-result-info">
         <div class="item-result-name">${escapeHtml(item.Name)}</div>
         <div class="item-result-category">ID: ${item.ID}</div>
